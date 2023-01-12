@@ -65,8 +65,7 @@ class SimpleButton:
 
     async def pressed(self):
         """
-        Wait until pin is pressed
-        :return:
+        Wait until button is pressed
         """
         edge = countio.Edge.RISE if self.value_when_pressed else countio.Edge.FALL
         with countio.Counter(self.pin, edge, self.pull) as counter:
@@ -77,8 +76,7 @@ class SimpleButton:
 
     async def released(self):
         """
-        Wait until pin is released
-        :return:
+        Wait until button is released
         """
         edge = countio.Edge.FALL if self.value_when_pressed else countio.Edge.RISE
         with countio.Counter(self.pin, edge, self.pull) as counter:
@@ -119,14 +117,15 @@ class Button:
         """
         Create the button object and start the background async process, this object must be
         created only when the asyncio event loop is running
+
         :param Pin pin: the pin to be monitored
         :param bool value_when_pressed: ``True`` if the pin reads high when the key is pressed.
           ``False`` if the pin reads low (is grounded) when the key is pressed.
         :param bool pull: ``True`` if an internal pull-up or pull-down should be enabled on
-        the pin. A pull-up will be used if ``value_when_pressed`` is ``False``; a pull-down will be
-        used if it is True. If an external pull is already provided for the pins, you can set
-        pull to ``False``. However, enabling an internal pull when an external one is already
-        present is not a problem; it simply uses slightly more current.
+          the pin. A pull-up will be used if ``value_when_pressed`` is ``False``; a pull-down
+          will be used if it is True. If an external pull is already provided for the pins,
+          you can set pull to ``False``. However, enabling an internal pull when an external one
+          is already present is not a problem; it simply uses slightly more current.
         :param float double_click_max_duration: how long in seconds before a second click is
           registered as a double click (this is also the value used for triple clicks.
           Default is 0.5 seconds
@@ -166,7 +165,6 @@ class Button:
     async def _monitor(self):
         """
         This is the main background task that monitors key presses and releases
-        :return:
         """
         evt = keypad.Event(0, False)
         last_click_tm = -100000
@@ -211,17 +209,18 @@ class Button:
     async def wait(self, click_types: Sequence[int]):
         """
         Wait for the first of the specified events.
+
         :param List[int] click_types: One or more events to listen for.
         :return: A list of the clicks that actually happened.
 
         :example:
+          .. code-block:: python
 
-        >>>async def get_click():
-        >>>    # wait for a double or triple click
-        >>>    clicks = await button.wait((Button.DOUBLE, Button.TRIPLE))
-        >>>    if Button.DOUBLE in clicks:
-        >>>        # do something
-
+            >>> async def get_click():
+            >>>     # wait for a double or triple click
+            >>>     clicks = await button.wait((Button.DOUBLE, Button.TRIPLE))
+            >>>     if Button.DOUBLE in clicks:
+            >>>         # do something
 
         """
         evts: Dict[int, asyncio.Task] = {}
@@ -241,6 +240,7 @@ class Button:
     def deinit(self):
         """
         Deinitialise this and stop the background task
+
         :return:
         """
         self.monitor_task.cancel()
