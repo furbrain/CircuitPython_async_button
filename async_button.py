@@ -100,16 +100,17 @@ class Button:
     DOUBLE = 8
     TRIPLE = 16
     LONG = 32
-    ANY_CLICK = SINGLE | DOUBLE | TRIPLE | LONG
+    ANY_CLICK = (SINGLE, DOUBLE, TRIPLE, LONG)
+    ALL_EVENTS = (PRESSED, RELEASED, SINGLE, DOUBLE, TRIPLE, LONG)
 
     def __init__(
         self,
         pin: Pin,
         value_when_pressed: bool,
         *,
-        pull: bool = False,
+        pull: bool = True,
         double_click_max_duration=0.5,
-        long_click_min_duration=3.0,
+        long_click_min_duration=2.0,
         double_click_enable: bool = True,
         triple_click_enable: bool = False,
         long_click_enable: bool = False,
@@ -125,12 +126,12 @@ class Button:
           the pin. A pull-up will be used if ``value_when_pressed`` is ``False``; a pull-down
           will be used if it is True. If an external pull is already provided for the pins,
           you can set pull to ``False``. However, enabling an internal pull when an external one
-          is already present is not a problem; it simply uses slightly more current.
+          is already present is not a problem; it simply uses slightly more current. Default is True
         :param float double_click_max_duration: how long in seconds before a second click is
           registered as a double click (this is also the value used for triple clicks.
           Default is 0.5 seconds
         :param float long_click_min_duration: how long in seconds the button must be pressed before
-          a long_click is triggered
+          a long_click is triggered. Default is 2 seconds.
         :param bool double_click_enable: Whether double clicks are detected. Default is True
         :param bool triple_click_enable: Whether triple clicks are detected. Default is False
         :param bool long_click_enable: Whether long clicks are detected. Default is False
@@ -159,7 +160,7 @@ class Button:
                 self.RELEASED,
             )
         }
-        self.last_click = None
+        self.last_click = self.SINGLE
         self.pressed = False
 
     async def _monitor(self):
@@ -172,11 +173,12 @@ class Button:
         while True:
             if self.keys.events.get_into(evt):
                 if evt.pressed:
-                    self._trigger(self.pressed)
+                    self._trigger(self.PRESSED)
                     now = time.monotonic()
+                    # print(now, self.last_click_tm, self.double_click_max_duration)
                     if now - last_click_tm < self.double_click_max_duration:
                         self._increase_clicks()
-                    self.last_click_tm = now
+                    last_click_tm = now
                     long_click_due = now + self.long_click_min_duration
                     self.pressed = True
                 else:
@@ -206,11 +208,12 @@ class Button:
         evt.set()
         evt.clear()
 
-    async def wait(self, click_types: Sequence[int]):
+    async def wait(self, click_types: Sequence[int] = ALL_EVENTS):
         """
         Wait for the first of the specified events.
 
-        :param List[int] click_types: One or more events to listen for.
+        :param List[int] click_types: One or more events to listen for. Default is to listen
+          for all events
         :return: A list of the clicks that actually happened.
 
         :example:
@@ -236,6 +239,14 @@ class Button:
             else:
                 evt.cancel()  # cancel unfired events
         return results
+
+    async def wait_for_click(self):
+        """
+        Wait for any click and return it
+        :return: Which click happened
+        """
+        clicks = await self.wait(self.ANY_CLICK)
+        return clicks[0]
 
     def deinit(self):
         """
