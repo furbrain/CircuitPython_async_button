@@ -140,6 +140,8 @@ class Button:
         self.value_when_pressed = value_when_pressed
         self.double_click_max_duration = double_click_max_duration
         self.long_click_min_duration = long_click_min_duration
+        if not double_click_enable and triple_click_enable:
+            raise ValueError("Must have double click enabled to use triple click")
         self.click_enabled = {
             self.DOUBLE: double_click_enable,
             self.TRIPLE: triple_click_enable,

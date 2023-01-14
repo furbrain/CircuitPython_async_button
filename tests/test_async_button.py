@@ -1,4 +1,3 @@
-# SPDX-FileCopyrightText: 2017 Scott Shawcroft, written for Adafruit Industries
 # SPDX-FileCopyrightText: Copyright (c) 2023 Phil Underwood for Underwood Underground
 #
 # SPDX-License-Identifier: MIT
@@ -92,6 +91,12 @@ class TestButton(IsolatedAsyncioTestCase):
             (self.pin,), value_when_pressed=True, pull=False
         )
 
+    async def test_create_with_triple_but_no_double_fails(self):
+        with self.assertRaises(ValueError):
+            self.button = async_button.Button(
+                self.pin, False, double_click_enable=False, triple_click_enable=True
+            )
+
     async def test_button_pressed(self):
         self.button = async_button.Button(self.pin, True)
         self.button_timings = [0.10]
@@ -130,6 +135,15 @@ class TestButton(IsolatedAsyncioTestCase):
         self.button_timings = [0.10, 0.30, 1.1, 1.3]
         with self.assertRaises(TimeoutError):
             await self.wait_event_with_timeout([async_button.Button.DOUBLE])
+
+    async def test_two_singles_when_too_slow(self):
+        self.button = async_button.Button(
+            self.pin,
+            True,
+        )
+        self.button_timings = [0.10, 0.30, 1.1, 1.3]
+        await self.wait_event_with_timeout([async_button.Button.SINGLE])
+        await self.wait_event_with_timeout([async_button.Button.SINGLE])
 
     async def test_double_click_not_when_too_slow_with_different_time(self):
         self.button = async_button.Button(self.pin, True, double_click_max_duration=0.1)
