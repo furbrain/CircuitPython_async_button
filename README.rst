@@ -23,7 +23,8 @@ Introduction
     :alt: Code Style: Black
 
 This library provides an asynchronous interface to the ``countio`` and ``keypad`` modules. It also provides
-detection of single, double and triple clicks, and also long presses
+detection of single, double and triple clicks, and also long presses.
+
 
 
 Dependencies
@@ -91,9 +92,15 @@ Or the following command to update an existing version:
 Usage Example
 =============
 
-.. code-block:: python
+.. literalinclude:: ../examples/async_simplebutton_test.py
+    :caption: examples/async_simplebutton_test.py
+    :linenos:
 
-    from async_button import Button
+.. literalinclude:: ../examples/async_button_test.py
+    :caption: examples/async_button_test.py
+    :linenos:
+
+
 
 Documentation
 =============
