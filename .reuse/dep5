@@ -3,10 +3,6 @@ Upstream-Name: CircuitPython_async_button
 Upstream-Contact: Phil Underwood <beardydoc@gmail.com>
 Source: https://github.com/furbrain/CircuitPython_async_button
 
-Files: docs/*.png
-Copyright: 2023 Phil Underwood <beardydoc@gmail.com>
-License: CC-BY-4.0
-
 Files: docs/*.json
 Copyright: 2023 Phil Underwood <beardydoc@gmail.com>
 License: CC-BY-4.0

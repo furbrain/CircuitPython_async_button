@@ -20,10 +20,12 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
+    "sphinxcontrib.wavedrom",
 ]
 
 autodoc_mock_imports = ["microcontroller", "countio", "keypad", "asyncio"]
 
+autodoc_preserve_defaults = True
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),

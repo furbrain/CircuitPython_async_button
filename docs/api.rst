@@ -6,3 +6,4 @@
 
 .. automodule:: async_button
     :members:
+    :member-order: bysource

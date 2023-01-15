@@ -14,4 +14,4 @@
 ],
  edge: ["A->D","B->E", "C->F", "M->G", "M->J", "N->H", "N->K", "O->I", "O->L",
 
-  "P+Q double_click_max_duration"]}
+  "P+Q t < double_click_max_duration"]}
