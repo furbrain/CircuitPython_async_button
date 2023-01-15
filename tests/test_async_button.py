@@ -136,6 +136,13 @@ class TestButton(IsolatedAsyncioTestCase):
         with self.assertRaises(TimeoutError):
             await self.wait_event_with_timeout([async_button.Button.DOUBLE])
 
+    async def test_double_click_goes_back_to_single_after_gap(self):
+        self.button = async_button.Button(self.pin, True)
+        self.button_timings = [0.10, 0.30, 0.5, 0.7, 1.5, 1.7]
+        await self.wait_event_with_timeout([async_button.Button.DOUBLE])
+        self.assertAlmostEqual(self.time_count, 0.70, delta=0.05)
+        await self.wait_event_with_timeout([async_button.Button.SINGLE])
+
     async def test_two_singles_when_too_slow(self):
         self.button = async_button.Button(
             self.pin,
@@ -174,6 +181,15 @@ class TestButton(IsolatedAsyncioTestCase):
         self.button_timings = [0.10, 2.30]
         with self.assertRaises(TimeoutError):
             await self.wait_event_with_timeout([async_button.Button.LONG])
+
+    async def test_long_click_does_not_produce_single_or_long_click_at_end(self):
+        self.button = async_button.Button(self.pin, True, long_click_enable=True)
+        self.button_timings = [0.10, 2.30]
+        await self.wait_event_with_timeout([async_button.Button.LONG])
+        with self.assertRaises(TimeoutError):
+            await self.wait_event_with_timeout(
+                [async_button.Button.SINGLE, async_button.Button.LONG]
+            )
 
     async def test_single_then_double_then_triple_works(self):
         self.button = async_button.Button(self.pin, True, triple_click_enable=True)

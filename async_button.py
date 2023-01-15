@@ -31,7 +31,11 @@ __repo__ = "https://github.com/furbrain/CircuitPython_async_button.git"
 import time
 
 import asyncio
-from typing import Dict, Sequence
+
+try:
+    from typing import Dict, Sequence, Awaitable
+except ImportError:
+    pass
 
 import digitalio
 import keypad
@@ -41,7 +45,8 @@ import countio
 
 class SimpleButton:
     """
-    Asynchronous interface to a button or other IO input
+    Asynchronous interface to a button or other IO input. This does not create a background
+    task.
     """
 
     def __init__(self, pin: Pin, value_when_pressed: bool, pull: bool = True):
@@ -68,7 +73,7 @@ class SimpleButton:
         Wait until button is pressed
         """
         edge = countio.Edge.RISE if self.value_when_pressed else countio.Edge.FALL
-        with countio.Counter(self.pin, edge, self.pull) as counter:
+        with countio.Counter(self.pin, edge=edge, pull=self.pull) as counter:
             while True:
                 if counter.count > 0:
                     return
@@ -79,7 +84,7 @@ class SimpleButton:
         Wait until button is released
         """
         edge = countio.Edge.FALL if self.value_when_pressed else countio.Edge.RISE
-        with countio.Counter(self.pin, edge, self.pull) as counter:
+        with countio.Counter(self.pin, edge=edge, pull=self.pull) as counter:
             while True:
                 if counter.count > 0:
                     return
@@ -90,18 +95,24 @@ class Button:
     # pylint: disable
     """
     This object will monitor the specified pin for changes and will report
-    single, double, triple and long_clicks. It creates a background _`asyncio` process
-    that will monitor the button.
+    single, double, triple and long_clicks. It creates a background `asyncio` process
+    that will monitor the button. The `events` chapter in the documentation shows when the
+    various events are triggered
     """
 
-    PRESSED = 1
-    RELEASED = 2
-    SINGLE = 4
-    DOUBLE = 8
-    TRIPLE = 16
-    LONG = 32
-    ANY_CLICK = (SINGLE, DOUBLE, TRIPLE, LONG)
-    ALL_EVENTS = (PRESSED, RELEASED, SINGLE, DOUBLE, TRIPLE, LONG)
+    PRESSED = 1  #: Button has been pressed
+    RELEASED = 2  #: Button has been released
+    SINGLE = 4  #: Single click
+    DOUBLE = 8  #: Double click
+    TRIPLE = 16  #: Triple click
+    LONG = 32  #: Long click
+    ANY_CLICK = (
+        SINGLE,
+        DOUBLE,
+        TRIPLE,
+        LONG,
+    )  #: Any of `SINGLE`, `DOUBLE`, `TRIPLE` or `LONG`
+    ALL_EVENTS = (PRESSED, RELEASED, SINGLE, DOUBLE, TRIPLE, LONG)  #: Any event
 
     def __init__(
         self,
@@ -180,12 +191,17 @@ class Button:
                     # print(now, self.last_click_tm, self.double_click_max_duration)
                     if now - last_click_tm < self.double_click_max_duration:
                         self._increase_clicks()
+                    else:
+                        self.last_click = self.SINGLE
                     last_click_tm = now
                     long_click_due = now + self.long_click_min_duration
                     self.pressed = True
                 else:
                     self._trigger(self.RELEASED)
-                    self._trigger(self.last_click)
+                    if self.last_click != self.LONG:
+                        self._trigger(self.last_click)
+                    else:
+                        self.last_click = self.SINGLE
                     self.pressed = False
             else:
                 if self.pressed and self.click_enabled[self.LONG]:
@@ -210,6 +226,11 @@ class Button:
         evt.set()
         evt.clear()
 
+    @staticmethod
+    async def _set_event_when_done(coro: Awaitable, event: asyncio.Event):
+        await coro
+        event.set()
+
     async def wait(self, click_types: Sequence[int] = ALL_EVENTS):
         """
         Wait for the first of the specified events.
@@ -229,9 +250,13 @@ class Button:
 
         """
         evts: Dict[int, asyncio.Task] = {}
+        one_event_done = asyncio.Event()
         for evt_type in click_types:
-            evts[evt_type] = asyncio.create_task(self.events[evt_type].wait())
-        await asyncio.wait(evts.values(), return_when=asyncio.FIRST_COMPLETED)
+            coro = self.events[evt_type].wait()
+            evts[evt_type] = asyncio.create_task(
+                self._set_event_when_done(coro, one_event_done)
+            )
+        await one_event_done.wait()
         if len(evts) > 1:
             await asyncio.sleep(0)  # ensure all event types get an opportunity to run
         results = []
@@ -245,6 +270,7 @@ class Button:
     async def wait_for_click(self):
         """
         Wait for any click and return it
+
         :return: Which click happened
         """
         clicks = await self.wait(self.ANY_CLICK)
@@ -252,9 +278,7 @@ class Button:
 
     def deinit(self):
         """
-        Deinitialise this and stop the background task
-
-        :return:
+        Deinitialise object and stop the background task
         """
         self.monitor_task.cancel()
         self.keys.deinit()

@@ -11,14 +11,14 @@ Table of Contents
     self
 
 .. toctree::
-    :caption: Events
-
-    events
-
-.. toctree::
     :caption: Examples
 
     examples
+
+.. toctree::
+    :caption: Events
+
+    events
 
 .. toctree::
     :caption: API Reference
