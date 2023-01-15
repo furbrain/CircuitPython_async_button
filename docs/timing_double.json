@@ -1,0 +1,17 @@
+{signal: [
+  {                                               node: '..P.....Q.....R.....'},
+  {name: 'Button',   wave: '0.1..0..1..0..1..0.', node: '..A..M..B..N..C..O..'},
+  {},
+  ['ANY_EVENT',
+    {name: 'PRESSED',  wave: '0.10....10....10...', node: '..D.....E.....F.....'},
+    {name: 'RELEASED', wave: '0....10....10....10', node: '.....G.....H.....I..'},
+    {},
+   ['ALL_CLICKS',
+      {name: 'SINGLE',   wave: '0....10..........10', node: '.....J...........L..'},
+      {name: 'DOUBLE',   wave: '0..........10......', node: '...........K........'},
+      {name: 'TRIPLE',   wave: '0..................', node: '....................'},
+      {name: 'LONG',     wave: '0..................', node: '....................'}]]
+],
+ edge: ["A->D","B->E", "C->F", "M->G", "M->J", "N->H", "N->K", "O->I", "O->L",
+
+  "P+Q double_click_max_duration"]}
