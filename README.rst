@@ -22,7 +22,7 @@ Introduction
     :target: https://github.com/psf/black
     :alt: Code Style: Black
 
-This library provides an asynchronous interface to the ``countio`` and ``keypad`` modules. It also provides
+This library provides an asynchronous way to wait for buttons to be pressed. It also provides
 detection of single, double and triple clicks, and also long presses.
 
 
@@ -89,18 +89,30 @@ Or the following command to update an existing version:
 
     circup update
 
-Usage Example
-=============
+Usage
+=====
 
-.. literalinclude:: ../examples/async_simplebutton_test.py
-    :caption: examples/async_simplebutton_test.py
-    :linenos:
+There are two classes:
 
-.. literalinclude:: ../examples/async_button_test.py
-    :caption: examples/async_button_test.py
-    :linenos:
+* ``SimpleButton``: This allows to ``await`` for presses and releases
 
+  .. code-block:: python
 
+     button = async_button.SimpleButton(board.D5, True)
+     await button.pressed
+
+* ``Button``: This has much more features. It creates a background process to monitor the button
+  and allows the user to ``await`` for single clicks, double clicks, long clicks etc. It must be instantiated
+  in an asynchronous environment
+
+  .. code-block:: python
+
+     button = async_button.Button(board.D5, True)
+     click = await button.wait_for_click()
+     if click == button.DOUBLE:
+         print("Double click!")
+
+See the examples folder for full demonstrations
 
 Documentation
 =============
