@@ -1,3 +1,6 @@
 # SPDX-FileCopyrightText: 2022 Alec Delaney, for Adafruit Industries
 #
 # SPDX-License-Identifier: Unlicense
+
+# this is needed to build documentation. Current circuitpython CI does not respect doc/requirements.txt
+sphinxcontrib-wavedrom
