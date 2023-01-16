@@ -1,16 +1,32 @@
 {signal: [
   {                                               node: '..P.......Q...R.....'},
-  {name: 'Button',   wave: '0.1.............0.', node: '..A..M..B..N..C..O..'},
+  {name: 'Button',   wave: '0.1..............0.', node: '..A..M..B.N...C..O..'},
   {},
   ['ANY_EVENT',
-    {name: 'PRESSED',  wave: '0.10....10....10...', node: '..D.....E.....F.....'},
-    {name: 'RELEASED', wave: '0....10....10....10', node: '.....G.....H.....I..'},
+    {name: 'PRESSED',  wave: '0.pl...............', node: '..D.....E.....F.....',
+      phase: -0.25
+    },
+    {name: 'RELEASED', wave: '0................pl', node: '.....G.....H.....I..',
+      phase: -0.25
+    },
     {},
    ['ALL_CLICKS',
-      {name: 'SINGLE',   wave: '0..................', node: '.....J...........L..'},
-      {name: 'DOUBLE',   wave: '0..................', node: '....................'},
-      {name: 'TRIPLE',   wave: '0..................', node: '....................'},
-      {name: 'LONG',     wave: '0.........10.......', node: '..........K.........'}]]
+      {name: 'SINGLE',   wave: '0..................', node: '.....J...........L..',
+      phase: -0.25
+    },
+      {name: 'DOUBLE',   wave: '0..................', node: '....................',
+      phase: -0.25
+    },
+      {name: 'TRIPLE',   wave: '0..................', node: '....................',
+      phase: -0.25
+    },
+      {name: 'LONG',     wave: '0.........pl.......', node: '..........K.........',
+      phase: -0.25
+    }]]
 ],
- edge: ["A->D","Q->K", "O->I",,
-  "P+Q long_click_min_duration"]}
+ edge: ["A->D","Q->K", "O->I","A-P","Q-N",
+  "P+Q t_long"],
+  config: {
+    skin: "narrow",
+  }
+}

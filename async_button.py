@@ -149,7 +149,9 @@ class Button:
         """
         self.pin = pin
         self.value_when_pressed = value_when_pressed
+        #: Maximum separation between two clicks to register as double in seconds (default is 0.5s)
         self.double_click_max_duration = double_click_max_duration
+        #: Minimum duration for a click to register as a long click in seconds. Default is 2s
         self.long_click_min_duration = long_click_min_duration
         if not double_click_enable and triple_click_enable:
             raise ValueError("Must have double click enabled to use triple click")
@@ -271,7 +273,7 @@ class Button:
         """
         Wait for any click and return it
 
-        :return: Which click happened
+        :return: Which click happened i.e. one of `SINGLE`, `DOUBLE`, `TRIPLE` or `LONG`
         """
         clicks = await self.wait(self.ANY_CLICK)
         return clicks[0]

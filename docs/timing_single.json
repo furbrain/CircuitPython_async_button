@@ -3,14 +3,30 @@
   {name: 'Button',   wave: '0.1..0..1..0..1..0.', node: '..A..M..B..N..C..O..'},
   {},
   ['ANY_EVENT',
-    {name: 'PRESSED',  wave: '0.10....10....10...', node: '..D.....E.....F.....'},
-    {name: 'RELEASED', wave: '0....10....10....10', node: '.....G.....H.....I..'},
+    {name: 'PRESSED',  wave: '0.pl....pl....pl...', node: '..D.....E.....F.....',
+      phase: -0.25
+    },
+    {name: 'RELEASED', wave: '0....pl....pl....pl', node: '.....G.....H.....I..',
+      phase: -0.25
+    },
     {},
    ['ALL_CLICKS',
-      {name: 'SINGLE',   wave: '0....10....10....10', node: '.....J.....K.....L..'},
-      {name: 'DOUBLE',   wave: '0..................', node: '...................'},
-      {name: 'TRIPLE',   wave: '0..................', node: '....................'},
-      {name: 'LONG',     wave: '0..................', node: '....................'}]]
+      {name: 'SINGLE',   wave: '0....pl....pl....pl', node: '.....J.....K.....L..',
+      phase: -0.25
+    },
+      {name: 'DOUBLE',   wave: '0..................', node: '...................',
+      phase: -0.25
+    },
+      {name: 'TRIPLE',   wave: '0..................', node: '....................',
+      phase: -0.25
+    },
+      {name: 'LONG',     wave: '0..................', node: '....................',
+      phase: -0.25
+    }]]
 ],
- edge: ["A->D","B->E", "C->F", "M->G", "M->J", "N->H", "N->K", "O->I", "O->L",
- ]}
+ edge: ["A->D","B->E", "C->F", "M->G", "M->J", "N->H", "N->K", "O->I", "O->L"
+ ],
+  config: {
+    skin: "narrow",
+  }
+}
