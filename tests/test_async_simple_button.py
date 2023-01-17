@@ -26,7 +26,7 @@ class TestSimpleButton(IsolatedAsyncioTestCase):
         self.counter.__enter__.return_value = (
             self.counter
         )  # return self as a context manager
-        type(self.counter).count = PropertyMock(side_effect=[0, 0, 1])
+        type(self.counter).count = PropertyMock(side_effect=[0, 0, 1, 0, 0, 1])
         self.countio.Counter.return_value = self.counter
         self.asyncio = MagicMock()
         self.asyncio.sleep = AsyncMock()
@@ -34,7 +34,6 @@ class TestSimpleButton(IsolatedAsyncioTestCase):
         self.patch_asyncio.start()
         self.edge_rise = self.countio.Edge.RISE
         self.edge_fall = self.countio.Edge.FALL
-        self.simple_button_class = async_button.SimpleButton
 
     def tearDown(self) -> None:
         self.patch_asyncio.stop()
@@ -49,7 +48,7 @@ class TestSimpleButton(IsolatedAsyncioTestCase):
         self.assertEqual(self.asyncio.sleep.await_count, 2)
 
     async def test_released_active_high(self):
-        button = self.simple_button_class("P1", True)
+        button = async_button.SimpleButton("P1", True)
         await button.released()
         self.countio.Counter.assert_called_once_with(
             "P1", edge=self.edge_fall, pull=digitalio.Pull.DOWN
@@ -57,7 +56,7 @@ class TestSimpleButton(IsolatedAsyncioTestCase):
         self.assertEqual(self.asyncio.sleep.await_count, 2)
 
     async def test_pressed_active_low(self):
-        button = self.simple_button_class("P1", False)
+        button = async_button.SimpleButton("P1", False)
         await button.pressed()
         self.countio.Counter.assert_called_once_with(
             "P1", edge=self.edge_fall, pull=digitalio.Pull.UP
@@ -65,9 +64,38 @@ class TestSimpleButton(IsolatedAsyncioTestCase):
         self.assertEqual(self.asyncio.sleep.await_count, 2)
 
     async def test_released_active_low(self):
-        button = self.simple_button_class("P1", False)
+        button = async_button.SimpleButton("P1", False)
         await button.released()
         self.countio.Counter.assert_called_once_with(
             "P1", edge=self.edge_rise, pull=digitalio.Pull.UP
         )
         self.assertEqual(self.asyncio.sleep.await_count, 2)
+
+    async def test_pull_false_is_respected(self):
+        button = async_button.SimpleButton("P1", False, pull=False)
+        await button.released()
+        self.countio.Counter.assert_called_once_with(
+            "P1", edge=self.edge_rise, pull=None
+        )
+        self.assertEqual(self.asyncio.sleep.await_count, 2)
+
+    async def test_default_interval(self):
+        button = async_button.SimpleButton("P1", False)
+        await button.pressed()
+        self.asyncio.sleep.assert_awaited_with(0.05)
+        await button.released()
+        self.asyncio.sleep.assert_awaited_with(0.05)
+
+    async def test_interval_zero(self):
+        button = async_button.SimpleButton("P1", False, interval=0)
+        await button.pressed()
+        self.asyncio.sleep.assert_awaited_with(0)
+        await button.released()
+        self.asyncio.sleep.assert_awaited_with(0)
+
+    async def test_other_interval(self):
+        button = async_button.SimpleButton("P1", False, interval=1.25)
+        await button.pressed()
+        self.asyncio.sleep.assert_awaited_with(1.25)
+        await button.released()
+        self.asyncio.sleep.assert_awaited_with(1.25)

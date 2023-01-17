@@ -51,7 +51,9 @@ class SimpleButton:
     task.
     """
 
-    def __init__(self, pin: Pin, value_when_pressed: bool, pull: bool = True):
+    def __init__(
+        self, pin: Pin, value_when_pressed: bool, *, pull: bool = True, interval=0.05
+    ):
         """
 
         :param Pin pin: Pin to wait for
@@ -62,9 +64,14 @@ class SimpleButton:
           it is ``True``. If an external pull is already provided for the pin, you can set
           pull to ``False``. However, enabling an internal pull when an external one is already
           present is not a problem; it simply uses slightly more current.
+        :param float interval: How long to wait between checks of whether the button has changed.
+          Default is 0.05s (human experience of "instantaneous" is up to 0.1s). This parameter
+          can be set to zero and the button will be checked as often as possible, although other
+          coroutines will still be able to run.
         """
         self.pin: Pin = pin
         self.value_when_pressed = value_when_pressed
+        self.interval = interval
         if pull:
             self.pull = digitalio.Pull.DOWN if value_when_pressed else digitalio.Pull.UP
         else:
@@ -79,7 +86,7 @@ class SimpleButton:
             while True:
                 if counter.count > 0:
                     return
-                await asyncio.sleep(0)
+                await asyncio.sleep(self.interval)
 
     async def released(self):
         """
@@ -90,7 +97,7 @@ class SimpleButton:
             while True:
                 if counter.count > 0:
                     return
-                await asyncio.sleep(0)
+                await asyncio.sleep(self.interval)
 
 
 class Button:
