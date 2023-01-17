@@ -11,8 +11,8 @@ import keypad
 
 sys.modules["countio"] = MagicMock()
 
-# pylint: disable=wrong-import-position
-import async_button
+import async_button  # pylint: disable=wrong-import-position
+
 
 # this class sets the sleep interval in the monitor task to zero so tests finish quickly
 class FastButton(async_button.Button):
@@ -25,10 +25,8 @@ class FastButton(async_button.Button):
 class TestButton(IsolatedAsyncioTestCase):
     # pylint: disable=invalid-name, too-many-public-methods
     def setUp(self) -> None:
-        self.time = MagicMock()
-        self.patch1 = patch("async_button.time", new=self.time)
+        self.patch1 = patch("async_button.ticks_ms", new=self.new_ticks_ms)
         self.patch1.start()
-        self.time.monotonic.side_effect = self.new_monotonic
         self.keypad_keys = MagicMock()
         self.patch2 = patch("async_button.keypad.Keys", new=self.keypad_keys)
         self.patch2.start()
@@ -50,8 +48,8 @@ class TestButton(IsolatedAsyncioTestCase):
             self.button.deinit()
             await asyncio.sleep(0)
 
-    def new_monotonic(self) -> float:
-        return self.time_count
+    def new_ticks_ms(self) -> float:
+        return int(self.time_count * 1000)
 
     def new_key_get(self, event: keypad.Event) -> bool:
         self.time_count += self.interval
@@ -256,3 +254,15 @@ class TestButton(IsolatedAsyncioTestCase):
             await self.button.wait(), (self.button.RELEASED, self.button.TRIPLE)
         )
         self.assertAlmostEqual(self.time_count, 1.10, delta=0.1)
+
+
+class TestButtonWithTimestamp(TestButton):
+    """
+    This one adds a timestamp to the event
+    """
+
+    def new_key_get(self, event: keypad.Event) -> bool:
+        result = super().new_key_get(event)
+        if result:
+            event.timestamp = self.new_ticks_ms()
+        return result

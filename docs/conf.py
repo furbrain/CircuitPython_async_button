@@ -25,7 +25,13 @@ extensions = [
 
 wavedrom_html_jsinline = False
 render_using_wavedrompy = True
-autodoc_mock_imports = ["microcontroller", "countio", "keypad", "asyncio"]
+autodoc_mock_imports = [
+    "microcontroller",
+    "countio",
+    "keypad",
+    "asyncio",
+    "adafruit_ticks",
+]
 
 autodoc_preserve_defaults = True
 

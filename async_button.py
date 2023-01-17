@@ -21,16 +21,18 @@ Implementation Notes
 
 * CircuitPython asyncio module:
   https://github.com/adafruit/Adafruit_CircuitPython_asyncio
+
+* CircuitPython ticks module:
+  https://github.com/adafruit/Adafruit_CircuitPython_Ticks
 """
 
-# imports
 
 __version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/furbrain/CircuitPython_async_button.git"
 
-import time
-
 import asyncio
+
+from adafruit_ticks import ticks_add, ticks_less, ticks_ms
 
 try:
     from typing import Dict, Sequence, Awaitable
@@ -92,7 +94,6 @@ class SimpleButton:
 
 
 class Button:
-    # pylint: disable
     """
     This object will monitor the specified pin for changes and will report
     single, double, triple and long_clicks. It creates a background `asyncio` process
@@ -191,20 +192,27 @@ class Button:
         This is the main background task that monitors key presses and releases
         """
         evt = keypad.Event(0, False)
-        last_click_tm = -100000
-        long_click_due = None
+        now = ticks_ms()
+        long_click_due = ticks_add(now, int(self.long_click_min_duration * 1000))
+        dbl_clk_expires = ticks_add(now, -100)
         while True:
             if self.keys.events.get_into(evt):
                 if evt.pressed:
                     self._trigger(self.PRESSED)
-                    now = time.monotonic()
+                    now = getattr(
+                        evt, "timestamp", ticks_ms()
+                    )  # use now if timestamp not there
                     # print(now, self.last_click_tm, self.double_click_max_duration)
-                    if now - last_click_tm < self.double_click_max_duration:
+                    if ticks_less(now, dbl_clk_expires):
                         self._increase_clicks()
                     else:
                         self.last_click = self.SINGLE
-                    last_click_tm = now
-                    long_click_due = now + self.long_click_min_duration
+                    long_click_due = ticks_add(
+                        now, int(self.long_click_min_duration * 1000)
+                    )
+                    dbl_clk_expires = ticks_add(
+                        now, int(self.double_click_max_duration * 1000)
+                    )
                     self.pressed = True
                 else:
                     self._trigger(self.RELEASED)
@@ -216,7 +224,7 @@ class Button:
             else:
                 if self.pressed and self.click_enabled[self.LONG]:
                     if (
-                        time.monotonic() > long_click_due
+                        ticks_less(long_click_due, ticks_ms())
                         and self.last_click != self.LONG
                     ):
                         self.last_click = self.LONG
