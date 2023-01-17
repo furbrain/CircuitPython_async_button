@@ -120,6 +120,7 @@ class Button:
         value_when_pressed: bool,
         *,
         pull: bool = True,
+        interval: float = 0.020,
         double_click_max_duration=0.5,
         long_click_min_duration=2.0,
         double_click_enable: bool = True,
@@ -137,15 +138,18 @@ class Button:
           the pin. A pull-up will be used if ``value_when_pressed`` is ``False``; a pull-down
           will be used if it is True. If an external pull is already provided for the pins,
           you can set pull to ``False``. However, enabling an internal pull when an external one
-          is already present is not a problem; it simply uses slightly more current. Default is True
+          is already present is not a problem; it simply uses slightly more current. Default is
+          True.
+        :param float interval: How long we wait between checking the state of the button. Default is
+          0.02 (20 milliseconds), which is a good value for debouncing.
         :param float double_click_max_duration: how long in seconds before a second click is
           registered as a double click (this is also the value used for triple clicks.
-          Default is 0.5 seconds
+          Default is 0.5 seconds.
         :param float long_click_min_duration: how long in seconds the button must be pressed before
           a long_click is triggered. Default is 2 seconds.
-        :param bool double_click_enable: Whether double clicks are detected. Default is True
-        :param bool triple_click_enable: Whether triple clicks are detected. Default is False
-        :param bool long_click_enable: Whether long clicks are detected. Default is False
+        :param bool double_click_enable: Whether double clicks are detected. Default is True.
+        :param bool triple_click_enable: Whether triple clicks are detected. Default is False.
+        :param bool long_click_enable: Whether long clicks are detected. Default is False.
         """
         self.pin = pin
         self.value_when_pressed = value_when_pressed
@@ -153,6 +157,7 @@ class Button:
         self.double_click_max_duration = double_click_max_duration
         #: Minimum duration for a click to register as a long click in seconds. Default is 2s
         self.long_click_min_duration = long_click_min_duration
+        self.interval = interval
         if not double_click_enable and triple_click_enable:
             raise ValueError("Must have double click enabled to use triple click")
         self.click_enabled = {
@@ -161,7 +166,10 @@ class Button:
             self.LONG: long_click_enable,
         }
         self.keys = keypad.Keys(
-            (self.pin,), value_when_pressed=value_when_pressed, pull=pull
+            (self.pin,),
+            value_when_pressed=self.value_when_pressed,
+            pull=pull,
+            interval=self.interval,
         )
         self.monitor_task = asyncio.create_task(self._monitor())
         self.events = {
@@ -213,7 +221,7 @@ class Button:
                     ):
                         self.last_click = self.LONG
                         self._trigger(self.LONG)
-            await asyncio.sleep(0)
+            await asyncio.sleep(self.interval)
 
     def _increase_clicks(self):
         if self.last_click == self.SINGLE and self.click_enabled[self.DOUBLE]:
