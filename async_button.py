@@ -31,11 +31,12 @@ __version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/furbrain/CircuitPython_async_button.git"
 
 import asyncio
+from asyncio import Task, Event
 
 from adafruit_ticks import ticks_add, ticks_less, ticks_ms
 
 try:
-    from typing import Dict, Sequence, Awaitable
+    from typing import Dict, Sequence, Awaitable, Any, Union
 except ImportError:
     pass
 
@@ -98,6 +99,52 @@ class SimpleButton:
                 if counter.count > 0:
                     return
                 await asyncio.sleep(self.interval)
+
+
+class TaskWrapper:
+    """
+    Create a task to run coro, then trigger event when finished
+    Shouldn't really need this but CircuitPython does not have asyncio.wait or Task.result()
+    """
+
+    def __init__(self, coro: Awaitable, event: Event):
+        """
+        :param Awaitable coro: coroutine to run
+        :param asyncio.Event event:
+        """
+        self._result = None
+        self.coro = coro
+        self.event = event
+        self.task = asyncio.create_task(self._wait())
+
+    async def _wait(self):
+        self._result = await self.coro
+        self.event.set()
+
+    def done(self):
+        """
+        Check whether task has completed
+
+        :return: True if task has completed
+        """
+        return self.task.done()
+
+    def result(self):
+        """
+        Get return value from task
+
+        :return: Whatever the task returned.
+        """
+        if not self.done():
+            raise AssertionError("Task has not yet completed")
+        return self._result
+
+    def cancel(self):
+        """
+        Cancel the task
+        :return:
+        """
+        self.task.cancel()
 
 
 class Button:
@@ -251,17 +298,12 @@ class Button:
         evt.set()
         evt.clear()
 
-    @staticmethod
-    async def _set_event_when_done(coro: Awaitable, event: asyncio.Event):
-        await coro
-        event.set()
-
-    async def wait(self, click_types: Sequence[int] = ALL_EVENTS):
+    async def wait(self, click_types: Union[int, Sequence[int]] = ALL_EVENTS):
         """
         Wait for the first of the specified events.
 
-        :param List[int] click_types: One or more events to listen for. Default is to listen
-          for all events
+        :param (List[int] | int) click_types: List of events to listen for. You can also pass a
+          single event type in. Default is to listen for all events.
         :return: A list of the clicks that actually happened.
 
         :example:
@@ -274,13 +316,19 @@ class Button:
             >>>         # do something
 
         """
-        evts: Dict[int, asyncio.Task] = {}
+        if isinstance(click_types, int):
+            click_types = [click_types]
+        # shortcut for efficiency: if only one click type awaited, just await that
+        if len(click_types) == 1:
+            await self.events[click_types[0]].wait()
+            return [click_types[0]]
+
+        # multiple click types - needs more complex algorithm
+        evts: Dict[int, TaskWrapper] = {}
         one_event_done = asyncio.Event()
         for evt_type in click_types:
             coro = self.events[evt_type].wait()
-            evts[evt_type] = asyncio.create_task(
-                self._set_event_when_done(coro, one_event_done)
-            )
+            evts[evt_type] = TaskWrapper(coro, one_event_done)
         await one_event_done.wait()
         if len(evts) > 1:
             await asyncio.sleep(0)  # ensure all event types get an opportunity to run
@@ -307,3 +355,58 @@ class Button:
         """
         self.monitor_task.cancel()
         self.keys.deinit()
+
+
+class MultiButton:
+    """
+    This class allows you to await the first click from any of two or more buttons
+    """
+
+    def __init__(self, **kwargs):
+        """
+
+        :param kwargs: pass each button that you want to be able to listen to with its name
+
+        :example:
+          .. code-block:: python
+
+            >>> multi = MultiButton(a = button_a, b=button_b)
+            >>> button, result = await multi.wait(a=Button.SINGLE, b= (Button.DOUBLE, Button.LONG))
+            >>> # Long click on button B
+            >>> print(button, result) # "b", Button.Long
+        """
+        for button in kwargs.values():
+            if not isinstance(button, Button):
+                raise TypeError("Must pass in async_button.Button as parameters")
+        self.buttons: Dict[Any, Button] = kwargs
+
+    async def wait(self, **kwargs):
+        """
+        Wait for any specified clicks
+
+        :param kwargs: pass by keyword what clicks you want to listen for
+        :return: button, click type
+        :example:
+          .. code-block:: python
+
+            >>> multi = MultiButton(a = button_a, b=button_b)
+            >>> button, result = await multi.wait(a=Button.SINGLE, b= (Button.DOUBLE, Button.LONG))
+            >>> # Long click on button B
+            >>> print(button, result) # "b", Button.Long
+        """
+        if len(kwargs) == 1:
+            button = list(kwargs)[0]
+            results = await self.buttons[button].wait(kwargs[button])
+            return button, results[0]
+        tasks: Dict[Any, Task] = {}
+        click_happened = asyncio.Event()
+        for key, value in kwargs.items():
+            tasks[key] = TaskWrapper(self.buttons[key].wait(value), click_happened)
+        await click_happened.wait()
+        result = (None, None)
+        for key, task in tasks.items():
+            if task.done():
+                result = (key, task.result()[0])
+            else:
+                task.cancel()
+        return result

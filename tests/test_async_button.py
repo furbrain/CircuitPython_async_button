@@ -120,6 +120,12 @@ class TestButton(IsolatedAsyncioTestCase):
         await self.wait_event_with_timeout([async_button.Button.SINGLE])
         self.assertAlmostEqual(self.time_count, 0.20, delta=0.1)
 
+    async def test_single_click_specified_without_list(self):
+        self.button = FastButton(self.pin, True)
+        self.button_timings = [0.10, 0.20]
+        await self.wait_event_with_timeout(async_button.Button.SINGLE)
+        self.assertAlmostEqual(self.time_count, 0.20, delta=0.1)
+
     async def test_double_click(self):
         self.button = FastButton(self.pin, True)
         self.button_timings = [0.10, 0.30, 0.5, 0.7]
