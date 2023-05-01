@@ -31,7 +31,7 @@ __version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/furbrain/CircuitPython_async_button.git"
 
 import asyncio
-from asyncio import Task, Event
+from asyncio import Event
 
 from adafruit_ticks import ticks_add, ticks_less, ticks_ms
 
@@ -256,7 +256,6 @@ class Button:
                     now = getattr(
                         evt, "timestamp", ticks_ms()
                     )  # use now if timestamp not there
-                    # print(now, self.last_click_tm, self.double_click_max_duration)
                     if ticks_less(now, dbl_clk_expires):
                         self._increase_clicks()
                     else:
@@ -329,16 +328,22 @@ class Button:
         for evt_type in click_types:
             coro = self.events[evt_type].wait()
             evts[evt_type] = TaskWrapper(coro, one_event_done)
-        await one_event_done.wait()
-        if len(evts) > 1:
-            await asyncio.sleep(0)  # ensure all event types get an opportunity to run
-        results = []
-        for evt_type, evt in evts.items():
-            if evt.done():
-                results.append(evt_type)
-            else:
-                evt.cancel()  # cancel unfired events
-        return results
+        try:
+            await one_event_done.wait()
+            if len(evts) > 1:
+                await asyncio.sleep(
+                    0
+                )  # ensure all event types get an opportunity to run
+            results = []
+            for evt_type, evt in evts.items():
+                if evt.done():
+                    results.append(evt_type)
+            return results
+        finally:
+            # make sure all tasks are cancelled on exit
+            for evt in evts.values():
+                if not evt.done():
+                    evt.cancel()
 
     async def wait_for_click(self):
         """
@@ -398,15 +403,19 @@ class MultiButton:
             button = list(kwargs)[0]
             results = await self.buttons[button].wait(kwargs[button])
             return button, results[0]
-        tasks: Dict[Any, Task] = {}
+        tasks: Dict[Any, TaskWrapper] = {}
         click_happened = asyncio.Event()
         for key, value in kwargs.items():
             tasks[key] = TaskWrapper(self.buttons[key].wait(value), click_happened)
-        await click_happened.wait()
-        result = (None, None)
-        for key, task in tasks.items():
-            if task.done():
-                result = (key, task.result()[0])
-            else:
-                task.cancel()
-        return result
+        try:
+            await click_happened.wait()
+            result = (None, None)
+            for key, task in tasks.items():
+                if task.done():
+                    result = (key, task.result()[0])
+            return result
+        finally:
+            # make sure all tasks are cancelled on exit
+            for task in tasks.values():
+                if not task.done():
+                    task.cancel()
