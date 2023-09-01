@@ -358,7 +358,11 @@ class Button:
         """
         Deinitialise object and stop the background task
         """
-        self.monitor_task.cancel()
+        try:
+            self.monitor_task.cancel()
+        except KeyError:
+            # sometimes get a key error if deinited before asyncio starts
+            pass
         self.keys.deinit()
 
 
